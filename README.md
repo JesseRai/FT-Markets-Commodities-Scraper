@@ -1,41 +1,60 @@
-# FT Markets Commodities Scraper
+# Market Data Scraper (Financial Times)
 
-Scrapes the latest commodity prices from the Financial Times Markets Data page and saves them to a CSV file for analysis.
+This Python script retrieves market data from the Financial Times Markets Data page and saves it into four structured CSV files. The script uses `requests` to download the page, `BeautifulSoup` to parse the HTML tables, `pandas` to structure the data, and `re` (regular expressions) to clean and extract values.
 
-## Description
-The script performs the following steps:
-1. Sends a GET request to the FT Markets Data homepage using a valid browser User-Agent.
-2. Parses the HTML content using BeautifulSoup.
-3. Locates the Commodities and News section of the page.
-4. Extracts the table of commodity names and their latest prices.
-5. Saves the data to a CSV file named commodities_prices.csv.
+## Data Extracted
 
-## Dependencies
-Install the required libraries before running the script:
-pip install requests beautifulsoup4 pandas
+### 1. Equity Indices
+- Index name
+- Last recorded value (commas removed for numeric use)
+- Daily numeric change
+- Daily percentage change
 
-## Usage
-Run the script directly with Python:
-python ft_commodities_scraper.py
+Regex is used to split combined change strings such as `-0.45-0.72%` into:
+- `-0.45` (numeric change)
+- `-0.72%` (percentage change)
 
-After running, a file named commodities_prices.csv will be created in the same directory, containing two columns:
-- Commodity
-- Last Price
+Output file: `Equity_Indices.csv`
 
-## Output Example
-| Commodity        | Last Price |
-|------------------|-------------|
-| Gold             | 2,354.10    |
-| Brent Crude Oil  | 87.25       |
-| Silver           | 28.13       |
+### 2. Currency Cross Rates
+- Major currency pairs
+- Exchange rates relative to: Eurozone, Japan, United Kingdom, United States
 
-## Notes
-- The script uses a user-agent header to simulate a normal browser request and avoid blocking.
-- The Financial Times may change its site structure over time. If the script stops working, inspect the HTML again and update the selectors accordingly.
-- Output encoding is handled automatically by Pandas.
+No regex cleanup applied in this section.
 
-## License
-This project is open-source under the MIT License.
+Output file: `Currency.csv`
 
-## Author
-Created by Jesse Rai.
+### 3. Commodities
+- Commodity name (timestamps removed using regex such as `as of ...`)
+- Last price (currency/unit text removed)
+- Contract information (extracted from price field)
+- Daily numeric and percentage change (split using the same regex method as equity indices)
+
+Regex usage includes:
+- Removing text after "as of" in commodity names.
+- Removing currency/unit suffixes from prices.
+- Extracting numeric and percentage change from combined change strings.
+
+Output file: `Commodity.csv`
+
+### 4. Bonds and Interest Rates
+- Country
+- Two-year bond yield
+- Ten-year bond yield
+
+No regex cleanup required here.
+
+Output file: `Bonds_and_Yields.csv`
+
+## Regex Summary
+
+| Purpose | Example Input | Regex Used | Result |
+|--------|---------------|------------|--------|
+| Split numeric + percentage change | `-0.45-0.72%` | `([+-]?\d+(\.\d+)?)([+-]\d+(\.\d+)?%)` | `-0.45` and `-0.72%` |
+| Remove thousands separators | `3,512.24` | `re.sub(",", "", text)` | `3512.24` |
+| Remove trailing timestamp text | `Gold as of Nov 07 2025 21:59 GMT` | `re.sub(r"as of.*", "", text, flags=re.IGNORECASE)` | `Gold` |
+| Remove currency/unit suffixes | `82.51 USD/t` | `re.sub(r"U.*", "", text, flags=re.IGNORECASE)` | `82.51` |
+
+## Requirements
+
+Install dependencies:
